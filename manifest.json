@@ -1,0 +1,17 @@
+{
+  "id": "./index.html",
+  "name": "Diagtech",
+  "short_name": "Diagtech",
+  "description": "Estación de diagnóstico y flasheo para dispositivos Samsung",
+  "lang": "es",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#101114",
+  "theme_color": "#101114",
+  "icons": [
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

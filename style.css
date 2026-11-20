@@ -1,0 +1,40 @@
+.tabs { display: flex; background: #15171c; border-bottom: 1px solid #282b33; padding: 0 max(18px, calc((100% - 1050px)/2)); }
+.tab-btn { background: transparent; color: #9da3af; border: none; border-bottom: 3px solid transparent; border-radius: 0; padding: 15px 20px; font-size: 15px; cursor: pointer; transition: 0.2s; }
+.tab-btn:hover { color: #fff; background: #1f232b; }
+.tab-btn.active { color: #78a0ff; border-bottom-color: #3979ff; background: transparent; }
+.tab-content { display: none; }
+.tab-content.active { display: block; animation: fadeIn 0.3s; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+/* ===== Pestaña Flasheo Odin (todo con alcance #flash-section para no tocar el diagnóstico) ===== */
+#flash-section { max-width: 1050px; margin: 0 auto; padding: 20px 18px; }
+#flash-section .flash-embed { display: grid; gap: 18px; }
+#flash-section section { background: #15171c; border: 1px solid #282b33; border-radius: 10px; padding: 16px; }
+#flash-section h2 { font-size: 16px; margin: 0 0 12px; }
+#flash-section button { background: #3979ff; color: #fff; border: 0; border-radius: 8px; padding: 10px 16px; font-size: 14px; font-weight: 600; cursor: pointer; }
+#flash-section button:hover { filter: brightness(1.12); }
+#flash-section button:disabled { opacity: .4; cursor: not-allowed; }
+#flash-section button.sec { background: transparent; border: 1px solid #282b33; color: #e6e8ee; }
+#flash-section button.go { background: #ff5d5d; }
+#flash-section .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+#flash-section .st { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 13px; background: #22262f; color: #9da3af; }
+#flash-section .st.ok { background: #12351f; color: #33d17a; }
+#flash-section .st.err { background: #3d1a1a; color: #ff5d5d; }
+#flash-section .files { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+#flash-section .files label { display: block; border: 1px dashed #3a3f4a; border-radius: 8px; padding: 10px; }
+#flash-section .files b { display: block; margin-bottom: 6px; }
+#flash-section .files input { width: 100%; color: #9da3af; font-size: 12px; }
+#flash-section .tw { overflow-x: auto; }
+#flash-section table { border-collapse: collapse; width: 100%; font-size: 13px; }
+#flash-section th, #flash-section td { text-align: left; padding: 6px 10px; border-bottom: 1px solid #282b33; white-space: nowrap; }
+#flash-section th { color: #9da3af; font-weight: 600; }
+#flash-section .ok { color: #33d17a; }
+#flash-section .no { color: #ffb020; }
+#flash-section #flog { background: #0b0c0f; border-radius: 8px; padding: 12px; height: 230px; overflow: auto; font: 12px/1.5 Consolas, monospace; white-space: pre-wrap; }
+#flash-section #flog .e { color: #ff5d5d; }
+#flash-section #flog .g { color: #33d17a; }
+#flash-section #flog .h { color: #9da3af; }
+#flash-section .note { color: #9da3af; font-size: 13px; margin: 8px 0 0; }
+#flash-section .bar { height: 14px; background: #0b0c0f; border-radius: 8px; overflow: hidden; margin: 10px 0; }
+#flash-section .bar i { display: block; height: 100%; width: 0; background: #3979ff; transition: width .2s; }
+#flash-section td input, #flash-section .chk input { accent-color: #3979ff; width: 16px; height: 16px; }
+#flash-section .warn { background: #3a2a0a; border: 1px solid #ffb020; border-radius: 8px; padding: 10px 12px; color: #ffd98a; font-size: 13px; margin-bottom: 12px; }

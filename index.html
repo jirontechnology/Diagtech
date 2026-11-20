@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101114">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="logo-192.jpg">
+  <title>Diagtech · Sistema Integral</title>
+  <link rel="stylesheet" href="style.css?v=121">
+</head>
+<body>
+  <header>
+    <img src="logo.jpg?v=120" alt="Logo JT" class="logo-img" onerror="this.style.display='none'">
+    <div>
+      <b>DIAGTECH</b>
+      <small>Estación de Servicio</small>
+    </div>
+    <span id="conn" class="tag">Desconectado</span>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab-btn active" data-target="diag-section">🔍 Diagnóstico</button>
+    <button class="tab-btn" data-target="flash-section">⚡ Flasheo Odin</button>
+  </nav>
+
+  <main>
+    <!-- ========================================== -->
+    <!-- SECCIÓN 1: DIAGNÓSTICO (sin cambios)       -->
+    <!-- ========================================== -->
+    <div id="diag-section" class="tab-content active">
+      <section class="intro">
+        <p class="eyebrow">ESTACIÓN DE SERVICIO · SOMOTILLO</p>
+        <h1>Diagnóstico de Hardware</h1>
+        <p>Conecta un dispositivo Android compatible. Esta herramienta usa WebUSB y no requiere instalar servidores locales.</p>
+      </section>
+
+      <section class="hero-action">
+        <div>
+          <p class="eyebrow">ACCIÓN PRINCIPAL</p>
+          <h2>Vincular dispositivo Android</h2>
+          <p id="actionHint">Para comenzar, haz clic en el botón. Asegúrate de tener la Depuración USB activada en tu teléfono.</p>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button id="connectBtn" class="primary big-action">🔌 CONECTAR POR USB</button>
+          <button id="disconnectBtn" class="big-action" style="background: #d65b51; display: none;">🔌 DESCONECTAR</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Información del Dispositivo</h2>
+        <div class="device">
+          <div><small>Fabricante</small><strong id="manufacturer">—</strong></div>
+          <div><small>Modelo</small><strong id="model">—</strong></div>
+          <div><small>Sistema</small><strong id="os">—</strong></div>
+          <div><small>Identificador</small><strong id="serial">—</strong></div>
+        </div>
+        <div class="actions">
+          <button id="runAll" disabled>▶ Ejecutar Pruebas Automáticas (ADB)</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="summary">
+          <div class="circle"><b id="done">0</b><small>/15</small></div>
+          <div>
+            <h2>Resumen de revisión</h2>
+            <p>🟢 Normales: <b id="ok">0</b></p>
+            <p>🔴 Problemas: <b id="bad">0</b></p>
+            <p>🟠 No disponible: <b id="unavailable">0</b></p>
+            <p>⚪ Sin probar: <b id="pending">15</b></p>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel"><h2>Verificaciones Automáticas</h2><div id="auto" class="tests"></div></section>
+
+      <section class="panel" style="border: 1px solid #00bcd4;">
+        <h2>Pruebas Especiales (ADB)</h2>
+        <div class="actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <button id="btnTestPantalla" style="background: #00838f;">🖥️ Ajustes de Pantalla</button>
+          <button id="btnTestMicro" style="background: #00838f;">🎤 Grabar y Reproducir</button>
+          <button id="btnTestSonido" style="background: #00838f;">🔊 Ajustes de Sonido</button>
+          <button id="btnTestCamara" style="background: #00838f;">📷 Abrir Cámara</button>
+        </div>
+      </section>
+
+      <section class="panel" style="border: 1px solid #f44336;">
+        <h2>Reinicio del Sistema</h2>
+        <div class="actions" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <button id="btnRebootDownload" style="background: #b71c1c;">⬇️ Modo Descarga (Odin)</button>
+          <button id="btnRebootRecovery" style="background: #b71c1c;">🔄 Modo Recovery</button>
+        </div>
+      </section>
+
+      <section class="panel" style="border: 1px solid #ff9800;">
+        <h2>Modo Test de Hardware (Fábrica)</h2>
+        <div class="actions">
+          <button id="btnTestSamsung" style="background: #142b50; border: 1px solid #3979ff;">Abrir Test Samsung (*#0*#)</button>
+          <button id="btnTestTecno" style="background: #142b50; border: 1px solid #3979ff;">Abrir Test Tecno/Infinix (*#85#)</button>
+        </div>
+      </section>
+
+      <section class="panel"><h2>Verificaciones Interactivas</h2><div id="manual" class="tests"></div></section>
+
+      <section class="panel" style="border: 1px solid #20a879;">
+        <h2>Historial de Ingresos (Local)</h2>
+        <div id="tablaHistorial"></div>
+        <div class="actions" style="margin-top: 15px; display: flex; gap: 10px;">
+          <button id="btnCopiarHistorial" style="background: #3979ff;">Copiar Historial</button>
+          <button id="btnBorrarHistorial" style="background: #d65b51;">Borrar Historial</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Informe y Registro</h2>
+        <div class="actions">
+          <button id="export">Exportar informe JSON</button>
+          <button id="btnLimpiarLog" style="background: #30343e;">Limpiar Registro</button>
+        </div>
+        <pre id="log">Sistema listo. Conecta un Android vía USB para comenzar.</pre>
+      </section>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- SECCIÓN 2: FLASHEO (Web Serial)            -->
+    <!-- ========================================== -->
+    <div id="flash-section" class="tab-content">
+      <div class="flash-embed">
+        <div class="warn" style="background:#3a2a0a;border:1px solid #ffb020;border-radius:8px;padding:10px 12px;color:#ffd98a;font-size:13px;margin-bottom:12px;">
+          ⚠️ <strong>Flasheo solo en PC.</strong> Esta sección usa Web Serial (protocolo Odin) y funciona en <strong>Chrome o Edge de escritorio</strong> con el teléfono en <strong>Modo Descarga</strong>. En tablets y móviles Android el navegador no expone el puerto serie USB, así que los botones de conexión no funcionarán. Cierra Odin, TSM Tool o SamFW antes de conectar: solo un programa puede usar el puerto COM.
+        </div>
+
+        <section>
+          <h2>1. Equipo en modo descarga</h2>
+          <div class="row">
+            <button id="bCon">Conectar y leer PIT</button>
+            <button id="bInfo" class="sec" disabled>Info del equipo (experimental)</button>
+            <button id="bPit" class="sec" disabled>Guardar PIT</button>
+            <button id="bEnd" class="sec" disabled>Cerrar sesión</button>
+            <span id="st" class="st">Sin conexión</span>
+          </div>
+          <p class="note">Chrome o Edge de escritorio, HTTPS. Cierra TSM Tool y Odin antes: solo un programa puede usar el puerto COM.</p>
+          <div id="dev" class="note"></div>
+        </section>
+
+        <section>
+          <h2>2. Firmware (extraído, como en Odin)</h2>
+          <div class="files">
+            <label><b>BL</b><input type="file" data-k="BL"></label>
+            <label><b>AP</b><input type="file" data-k="AP"></label>
+            <label><b>CP</b><input type="file" data-k="CP"></label>
+            <label><b>CSC</b><input type="file" data-k="CSC"></label>
+          </div>
+          <p class="note">Elige los archivos .tar.md5 sin comprimir. Se leen por partes, sin cargarlos en memoria.</p>
+        </section>
+
+        <section>
+          <h2>3. Mapa de particiones</h2>
+          <div id="sum" class="note">Carga el firmware y conecta el equipo para ver el mapa.</div>
+          <div class="tw"><table id="tb"><thead><tr><th></th><th>Paquete</th><th>Archivo</th><th>Tamaño</th><th>Partición (PIT)</th><th></th></tr></thead><tbody></tbody></table></div>
+          <div class="row" style="margin-top:10px"><button class="sec" id="bAll">Marcar todo</button><button class="sec" id="bNone">Ninguno</button><button class="sec" id="bTest">Solo RECOVERY (prueba)</button></div>
+        </section>
+
+        <section>
+          <h2>4. Flashear</h2>
+          <div class="warn">Implementado según la documentación pública del protocolo Odin, sin prueba en un equipo real todavía. Empieza solo con RECOVERY en un equipo de prueba. No marques BOOTLOADER, TZSW ni LDFW hasta que RECOVERY funcione. No desconectes el cable durante el proceso. Sin verificación MD5.</div>
+          <label class="row chk"><input type="checkbox" id="fok"> Entiendo que puede dejar el equipo sin arrancar</label>
+          <label class="row chk"><input type="checkbox" id="rb" checked> Reiniciar al terminar</label>
+          <div class="row" style="margin-top:8px"><button id="bGo" class="go" disabled>FLASHEAR</button><button id="bStop" class="sec" disabled>Cancelar</button><span id="pr" class="st">Listo</span></div>
+          <div class="bar"><i id="pb"></i></div>
+        </section>
+
+        <section>
+          <h2>Monitor</h2>
+          <div id="flog"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer><strong>DIAGTECH · Creado por Alvaro Jiron, Somotillo</strong></footer>
+  <script src="app.js?v=120" type="module"></script>
+  <script src="flash.js?v=121" type="module"></script>
+</body>
+</html>
