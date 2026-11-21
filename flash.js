@@ -1,5 +1,4 @@
-// Flasheo Odin (Web Serial) - pestaña "Flasheo Odin" de Diagtech.
-// Módulo independiente: no comparte variables con app.js (diagnóstico).
+// Flasheo Odin (Web Serial) - Diagtech
 const $=id=>document.getElementById(id);
 const enc=s=>new TextEncoder().encode(s), dec=new TextDecoder();
 let port,reader,writer,buf=new Uint8Array(0),pit=null,pitRaw=null,pumping=false,proto=null,abort=false,busy=false;
@@ -10,28 +9,52 @@ const hex=(u,n=24)=>[...u.slice(0,n)].map(b=>b.toString(16).padStart(2,'0')).joi
 const mb=n=>n>=1e9?(n/1e9).toFixed(2)+' GB':(n/1e6).toFixed(1)+' MB';
 function status(t,c){$('st').textContent=t;$('st').className='st '+(c||'')}
 
-/* ---- transporte serie ---- */
+/* ---- TRANSPORTE SERIE (LECTURA BLINDADA) ---- */
 async function pump(){
   try{while(pumping){const{value,done}=await reader.read();if(done)break;
     if(value){const n=new Uint8Array(buf.length+value.length);n.set(buf);n.set(value,buf.length);buf=n}}}catch(e){}
 }
-async function rd(n,ms=6000){
-  const t=Date.now();
-  while(buf.length<n){if(Date.now()-t>ms)throw new Error('Tiempo agotado: esperaba '+n+' bytes, llegaron '+buf.length);await new Promise(r=>setTimeout(r,8))}
-  const o=buf.slice(0,n);buf=buf.slice(n);return o;
+
+// Esta función ahora espera a que los datos se junten, sin importar cómo lleguen
+async function rd(n, ms=10000){
+  const start = Date.now();
+  let lastLen = -1;
+  let lastChange = Date.now();
+
+  while (buf.length < n) {
+    if (Date.now() - start > ms) {
+      throw new Error(`Tiempo agotado: esperaba ${n} bytes, pero solo llegaron ${buf.length}. Revisa el cable o reinicia el modo descarga.`);
+    }
+    // Si el buffer creció, reiniciamos el temporizador de inactividad
+    if (buf.length !== lastLen) {
+      lastLen = buf.length;
+      lastChange = Date.now();
+    } else if (Date.now() - lastChange > 1500) {
+      // Si pasan 1.5s sin recibir NADA nuevo, abortamos para no colgar la página
+      throw new Error(`Flujo detenido: esperaba ${n} bytes, llegaron ${buf.length}. El teléfono dejó de enviar datos.`);
+    }
+    await new Promise(r => setTimeout(r, 10));
+  }
+  const o = buf.slice(0, n);
+  buf = buf.slice(n);
+  return o;
 }
-const wr=d=>writer.write(d);
+
+const wr = d => writer.write(d);
+
 function pkt(type,sub,...ints){
   const p=new Uint8Array(1024),v=new DataView(p.buffer);
   v.setInt32(0,type,true);v.setInt32(4,sub,true);ints.forEach((x,i)=>v.setInt32(8+4*i,x,true));return p;
 }
-async function resp(ms=6000,q=false){
+
+async function resp(ms=10000,q=false){
   const r=await rd(8,ms),v=new DataView(r.buffer);
   if(!q)log('  ← '+hex(r,8),'h');
   const o={type:v.getInt32(0,true),data:v.getInt32(4,true)};
   if(o.type===0xFF)throw new Error('El equipo devolvió error (0xFF)');
   return o;
 }
+
 async function send(p,name){log('→ '+name+' ['+hex(p,12)+' …]','h');await wr(p)}
 
 /* ---- PIT ---- */
@@ -44,7 +67,7 @@ function parsePit(u){
   return out;
 }
 
-/* ---- conexión ---- */
+/* ---- CONEXIÓN ---- */
 async function conectar(){
   try{
     port=await navigator.serial.requestPort({filters:[{usbVendorId:0x04E8}]});
@@ -60,15 +83,27 @@ async function conectar(){
 
     await send(pkt(0x64,0,4),'Iniciar sesión');
     const s=await resp();
-    proto={ver:s.data>>16,big:s.data!==0,lz4:(s.data&0x8000)!==0,ps:131072,sm:800};
+    
+    // Ajuste de tamaño de secuencia para evitar rechazos
+    const ver = s.data >> 16;
+    proto={ver:ver, big:s.data!==0, lz4:(s.data&0x8000)!==0, ps:131072, sm:(ver<2?240:800)};
+    
     if(proto.big){await send(pkt(0x64,5,1048576),'Tamaño de paquete 1 MiB');await resp();proto.ps=1048576;proto.sm=30}
     log('Sesión abierta: protocolo '+proto.ver+(proto.lz4?', acepta LZ4':', sin LZ4')+', paquete '+proto.ps/1024+' KiB','g');
 
     await send(pkt(0x65,1),'Pedir PIT');
     const r=await resp();const size=r.data;
     if(size<=0||size>1e6)throw new Error('Tamaño de PIT inesperado: '+size);
+    
     const parts=Math.ceil(size/500),out=new Uint8Array(parts*500);
-    for(let k=0;k<parts;k++){await wr(pkt(0x65,2,k));out.set(await rd(500),k*500)}
+    
+    // LECTURA DEL PIT CORREGIDA
+    for(let k=0;k<parts;k++){
+        await wr(pkt(0x65,2,k));
+        await resp(10000, true); // Lee los 8 bytes del ACK
+        out.set(await rd(500), k*500); // Lee los 500 bytes del bloque
+    }
+    
     await wr(pkt(0x65,3));await resp();
     pitRaw=out.slice(0,size);pit=parsePit(pitRaw);
     log('PIT recibido: '+size+' bytes, '+pit.length+' particiones','g');
@@ -77,30 +112,32 @@ async function conectar(){
     render();
   }catch(e){log('ERROR: '+e.message,'e');status('Error','err');await cerrar(true)}
 }
+
 async function info(){
   try{
     await send(pkt(0x69,0),'Pedir info (experimental)');
-    await new Promise(r=>setTimeout(r,1200));
+    await new Promise(r=>setTimeout(r,1500));
     const d=buf.slice(0);buf=new Uint8Array(0);
-    if(!d.length){log('Sin respuesta a la info. El comando exacto hay que confirmarlo con bytes reales.','e');return}
+    if(!d.length){log('Sin respuesta a la info.','e');return}
     log('Bytes recibidos ('+d.length+'): '+hex(d,64),'h');
-    const t=dec.decode(d).replace(/[^\x20-\x7e\n]/g,' ').trim();if(t)log('Texto: '+t,'g');
   }catch(e){log('ERROR: '+e.message,'e')}
 }
+
 async function cerrar(silent){
   try{if(writer&&!silent){await wr(pkt(0x67,0));await resp().catch(()=>{});log('Sesión cerrada')}}catch(e){}
   pumping=false;
   try{await reader?.cancel()}catch(e){} try{reader?.releaseLock()}catch(e){} try{writer?.releaseLock()}catch(e){}
-  try{await port?.close();log('Puerto liberado: ya puedes usar TSM Tool')}catch(e){}
+  try{await port?.close();log('Puerto liberado')}catch(e){}
   port=reader=writer=null;status('Sin conexión');
   ['bInfo','bPit','bEnd'].forEach(b=>$(b).disabled=true);$('bCon').disabled=false;updGo();
 }
+
 function guardarPit(){
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([pitRaw]));
   a.download='dispositivo_'+Date.now()+'.pit';a.click();
 }
 
-/* ---- TAR por trozos ---- */
+/* ---- TAR ---- */
 async function tarIndex(file){
   const out=[];let o=0;
   while(o+512<=file.size){
@@ -115,18 +152,19 @@ async function tarIndex(file){
   }
   return out;
 }
+
 document.querySelectorAll('input[data-k]').forEach(inp=>inp.onchange=async()=>{
   const k=inp.dataset.k,f=inp.files[0];fw[k]=f||null;idx[k]=[];
-  if(f){try{idx[k]=await tarIndex(f);idx[k].forEach(e=>{e.file=f;e.k=k});log(k+': '+f.name+' → '+idx[k].length+' archivos ('+mb(f.size)+')','g');
-      if(!idx[k].length)log(k+': no se reconoció como TAR. ¿Está sin comprimir?','e')}
+  if(f){try{idx[k]=await tarIndex(f);idx[k].forEach(e=>{e.file=f;e.k=k});log(k+': '+f.name+' → '+idx[k].length+' archivos ('+mb(f.size)+')','g');}
     catch(e){log(k+': '+e.message,'e')}}
   render();
 });
 
-/* ---- mapa ---- */
+/* ---- MAPA ---- */
 const ORDER=['AP','BL','CP','CSC'];
 const sel=()=>ORDER.flatMap(k=>(idx[k]||[]).filter(e=>e.sel&&e.p));
 function updGo(){$('bGo').disabled=!(pit&&port&&!busy&&$('fok').checked&&sel().length)}
+
 function render(){
   const tb=$('tb').querySelector('tbody');tb.innerHTML='';
   let total=0,ok=0,miss=0;
@@ -147,12 +185,13 @@ function render(){
       tb.appendChild(tr);
     }
   }
-  $('sum').textContent=total?('Total del firmware: '+mb(total)+(pit?' · coinciden '+ok+' · sin coincidencia '+miss:'')):'Carga el firmware y conecta el equipo para ver el mapa.';
+  $('sum').textContent=total?('Total del firmware: '+mb(total)+(pit?' · coinciden '+ok+' · sin coincidencia '+miss:'')):'Carga el firmware y conecta el equipo.';
   updGo();
 }
+
 const marcar=f=>{ORDER.forEach(k=>(idx[k]||[]).forEach(e=>{e.sel=!!e.p&&f(e)}));render()};
 
-/* ---- flasheo ---- */
+/* ---- FLASHEO ---- */
 async function flashEntry(e,onBytes){
   const C=/\.lz4$/i.test(e.name),PS=proto.ps,seqMax=PS*proto.sm,p=e.p;
   await send(pkt(0x66,C?5:0),'Pedir flasheo'+(C?' (LZ4)':''));await resp();
@@ -169,10 +208,12 @@ async function flashEntry(e,onBytes){
       if(r.data!==i)throw new Error('Índice de parte inesperado: '+r.data+' (esperado '+i+')');
       onBytes(to-from);
     }
-    const end=p.bin===1?pkt(0x66,C?7:3,1,len,p.bin,p.dev,last?1:0):pkt(0x66,C?7:3,0,len,p.bin,p.dev,p.id,last?1:0);
+    // Estructura final corregida
+    const end=p.bin===1?pkt(0x66,C?7:3,1,len,p.bin,p.dev,last?1:0):pkt(0x66,C?7:3,0,len,p.id,0,0,last?1:0);
     await wr(end);await resp(120000);
   }
 }
+
 async function flashAll(){
   const list=sel();busy=true;abort=false;updGo();$('bStop').disabled=false;$('pb').style.width='0';
   try{
@@ -190,7 +231,7 @@ async function flashAll(){
     await send(pkt(0x67,$('rb').checked?1:0),$('rb').checked?'Reiniciar':'Cerrar sesión');await resp().catch(()=>{});
     await cerrar(true);
   }catch(err){
-    log('ERROR: '+err.message+'. No desconectes el equipo: sigue en modo descarga. Reintenta o termina con TSM Tool.','e');status('Error','err');$('pr').textContent='Error';
+    log('ERROR: '+err.message+'. No desconectes el equipo: sigue en modo descarga.','e');status('Error','err');$('pr').textContent='Error';
   }
   busy=false;$('bStop').disabled=true;updGo();
 }
@@ -199,5 +240,6 @@ $('bCon').onclick=conectar;$('bInfo').onclick=info;$('bPit').onclick=guardarPit;
 $('bAll').onclick=()=>marcar(()=>true);$('bNone').onclick=()=>marcar(()=>false);
 $('bTest').onclick=()=>marcar(e=>e.p.name.toUpperCase()==='RECOVERY');
 $('fok').onchange=updGo;$('bGo').onclick=flashAll;$('bStop').onclick=()=>{abort=true;log('Cancelando al terminar la parte actual…')};
+
 if(!('serial' in navigator)){status('Navegador no compatible','err');$('bCon').disabled=true;log('Este navegador no tiene Web Serial. Usa Chrome o Edge en la PC.','e')}
 else navigator.serial.addEventListener('disconnect',()=>{log('Equipo desconectado');cerrar(true)});
