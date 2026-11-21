@@ -26,7 +26,7 @@
 
   <main>
     <!-- ========================================== -->
-    <!-- SECCIÓN 1: DIAGNÓSTICO (sin cambios)       -->
+    <!-- SECCIÓN 1: DIAGNÓSTICO                     -->
     <!-- ========================================== -->
     <div id="diag-section" class="tab-content active">
       <section class="intro">
@@ -123,12 +123,12 @@
     </div>
 
     <!-- ========================================== -->
-    <!-- SECCIÓN 2: FLASHEO (Web Serial)            -->
+    <!-- SECCIÓN 2: FLASHEO (WebUSB)                -->
     <!-- ========================================== -->
     <div id="flash-section" class="tab-content">
       <div class="flash-embed">
         <div class="warn" style="background:#3a2a0a;border:1px solid #ffb020;border-radius:8px;padding:10px 12px;color:#ffd98a;font-size:13px;margin-bottom:12px;">
-          ⚠️ <strong>Flasheo solo en PC.</strong> Esta sección usa Web Serial (protocolo Odin) y funciona en <strong>Chrome o Edge de escritorio</strong> con el teléfono en <strong>Modo Descarga</strong>. En tablets y móviles Android el navegador no expone el puerto serie USB, así que los botones de conexión no funcionarán. Cierra Odin, TSM Tool o SamFW antes de conectar: solo un programa puede usar el puerto COM.
+          ⚠️ <strong>Flasheo solo en PC.</strong> Esta sección usa WebUSB (protocolo Odin) y funciona en <strong>Chrome o Edge de escritorio</strong> con el teléfono en <strong>Modo Descarga</strong>. En tablets y móviles Android el navegador no expone el puerto USB. Cierra Odin, TSM Tool o SamFW antes de conectar: solo un programa puede usar el dispositivo.
         </div>
 
         <section>
@@ -140,7 +140,7 @@
             <button id="bEnd" class="sec" disabled>Cerrar sesión</button>
             <span id="st" class="st">Sin conexión</span>
           </div>
-          <p class="note">Chrome o Edge de escritorio, HTTPS. Cierra TSM Tool y Odin antes: solo un programa puede usar el puerto COM.</p>
+          <p class="note">Chrome o Edge de escritorio, HTTPS. Cierra TSM Tool y Odin antes de conectar.</p>
           <div id="dev" class="note"></div>
         </section>
 
@@ -164,7 +164,7 @@
 
         <section>
           <h2>4. Flashear</h2>
-          <div class="warn">Implementado según la documentación pública del protocolo Odin, sin prueba en un equipo real todavía. Empieza solo con RECOVERY en un equipo de prueba. No marques BOOTLOADER, TZSW ni LDFW hasta que RECOVERY funcione. No desconectes el cable durante el proceso. Sin verificación MD5.</div>
+          <div class="warn">Implementado según la documentación de libmjolnir (WebUSB). Empieza solo con RECOVERY en un equipo de prueba. No marques BOOTLOADER, TZSW ni LDFW hasta que RECOVERY funcione. No desconectes el cable durante el proceso.</div>
           <label class="row chk"><input type="checkbox" id="fok"> Entiendo que puede dejar el equipo sin arrancar</label>
           <label class="row chk"><input type="checkbox" id="rb" checked> Reiniciar al terminar</label>
           <div class="row" style="margin-top:8px"><button id="bGo" class="go" disabled>FLASHEAR</button><button id="bStop" class="sec" disabled>Cancelar</button><span id="pr" class="st">Listo</span></div>
@@ -181,6 +181,6 @@
 
   <footer><strong>DIAGTECH · Creado por Alvaro Jiron, Somotillo</strong></footer>
   <script src="app.js?v=120" type="module"></script>
-  <script src="flash.js?v=121" type="module"></script>
+  <script src="flash.js?v=122" type="module"></script>
 </body>
 </html>
