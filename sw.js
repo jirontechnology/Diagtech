@@ -1,5 +1,6 @@
-const CACHE_NAME = 'diagtech-cache-v6';
-const ASSETS = ['./', './index.html', './manifest.json', './logo.jpg', './icon-512.png', './app.js', './flash.js'];
+const CACHE_NAME = 'diagtech-cache-v7';
+// Ya no incluimos flash.js porque ahora está dentro de index.html
+const ASSETS = ['./', './index.html', './manifest.json', './logo.jpg', './icon-512.png', './app.js', './style.css'];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(

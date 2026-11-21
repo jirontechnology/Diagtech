@@ -207,7 +207,6 @@ async function runOne(id) {
   } catch (e) { setResult(id, 'no disponible', e.message); }
 }
 
-// Historial, botones manuales y especiales
 function guardarEnHistorial() {
   try {
     const fab = $('manufacturer').textContent.trim(), mod = $('model').textContent.trim(), ser = $('serial').textContent.trim();
@@ -253,13 +252,8 @@ $('export').onclick = () => { const rep = { app: 'DIAGTECH', date: new Date().to
 actualizarTablaHistorial();
 
 // ==========================================
-// 3. FLASHEO (Web Serial, solo PC)
+// 3. REGISTRO DE SERVICE WORKER (ACTUALIZADO A V7)
 // ==========================================
-// El flasheo vive en su propio bloque de script dentro de index.html
-// porque necesita ejecutarse como script clásico (no módulo) y usa
-// variables locales propias. Aquí no hay nada que registrar.
-
-// Registrar SW con versión nueva
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  navigator.serviceWorker.register('/sw.js?v=120').then(reg => reg.update()).catch(() => {});
+  navigator.serviceWorker.register('/sw.js?v=7').then(reg => reg.update()).catch(() => {});
 }
