@@ -10,6 +10,31 @@ const log = (m, c) => {
 };
 const fmt = n => n > 1048576 ? (n / 1048576).toFixed(1) + ' MB' : (n / 1024).toFixed(0) + ' KB';
 
+/* ---------- Estilos de legibilidad (texto oscuro sobre fondo oscuro) ---------- */
+(() => {
+  const st = document.createElement('style');
+  st.textContent = `
+  #flash-section label, #flash-section td, #flash-section th, #flash-section .chk,
+  #flash-section .files b, #flash-section h2, #flash-section .st { color: #e8eaf0 !important; }
+  #flash-section .note { color: #aab0bf !important; }
+  #flash-section .chk { display:flex; align-items:center; gap:8px; font-size:14px; padding:4px 0; }
+  #flash-section input[type=checkbox] { width:18px; height:18px; accent-color:#3979ff; flex:none; }
+  #flash-section button { color:#fff !important; }
+  #flash-section button:disabled { opacity:.45; }
+  #flash-section #bGo { background:#d32f2f; font-weight:700; }
+  #flash-section #bGo:not(:disabled) { opacity:1; box-shadow:0 0 0 2px #ffb020; }
+  #flash-section #why { color:#ffd98a !important; font-size:13px; }
+  #flash-section td.rs { color:#ffb020 !important; font-size:12px; }`;
+  document.head.appendChild(st);
+})();
+
+// Texto claro forzado en línea: gana a cualquier hoja de estilos
+function paint() {
+  document.querySelectorAll('#flash-section label, #flash-section td, #flash-section th, #flash-section .chk, #flash-section h2, #flash-section .files b')
+    .forEach(e => { e.style.setProperty('color', '#f4f6fb', 'important'); });
+  document.querySelectorAll('#flash-section td').forEach(e => { e.style.setProperty('font-size', '14px'); e.style.setProperty('font-weight', '600'); });
+  document.querySelectorAll('#flash-section td.rs').forEach(e => e.style.setProperty('color', '#ffb020', 'important'));
+}
 /* ---------- Pestañas ---------- */
 const tabs = document.querySelectorAll('.tab-btn');
 function showTab(id) {
@@ -22,6 +47,7 @@ function showTab(id) {
 }
 tabs.forEach(b => b.addEventListener('click', () => showTab(b.dataset.target)));
 showTab('diag-section');
+paint();
 
 /* ---------- Capa serial ---------- */
 let port, reader, writer, pend = null, rbuf = new Uint8Array(0);
@@ -161,6 +187,7 @@ document.querySelectorAll('.files input[type=file]').forEach(inp =>
   inp.addEventListener('change', async () => {
     const k = inp.dataset.k;
     if (!inp.files[0]) { delete files[k]; buildRows(); return; }
+    { const n = inp.files[0].name.toUpperCase(); if (!(k === 'CSC' ? /CSC_/.test(n) : n.startsWith(k + '_'))) log(`Aviso: el archivo ${inp.files[0].name} no parece ser de la ranura ${k}`, '#ffb020'); }
     try { files[k] = { file: inp.files[0], entries: await readTar(inp.files[0]) }; log(`${k}: ${files[k].entries.length} archivos en ${inp.files[0].name}`); }
     catch (e) { log(`${k}: ${e.message}`, '#ff6b6b'); delete files[k]; }
     buildRows();
@@ -294,15 +321,21 @@ function render() {
   });
   const sel = rows.filter(r => r.on);
   $('sum').textContent = rows.length ? `${rows.length} archivos · ${sel.length} seleccionados (${fmt(sel.reduce((a, r) => a + r.e.size, 0))})` : 'Carga el firmware y conecta el equipo para ver el mapa.';
-  gate();
+  paint(); gate();
 }
 $('bAll').onclick = () => { rows.forEach(r => r.on = r.ok); render(); };
 $('bNone').onclick = () => { rows.forEach(r => r.on = false); render(); };
 $('bTest').onclick = () => { rows.forEach(r => r.on = r.ok && /^recovery/i.test(r.base)); render(); };
 $('fok').onchange = gate;
 function gate() {
-  $('bGo').disabled = !(connected && !running && $('fok').checked && rows.some(r => r.on));
+  const sel = rows.some(r => r.on), ok = $('fok').checked;
+  $('bGo').disabled = !(connected && !running && ok && sel);
   $('bStop').disabled = !running;
+  let w = $('why');
+  if (!w) { w = document.createElement('span'); w.id = 'why'; $('pr').after(w); }
+  w.textContent = running ? '' : !connected ? 'Falta: conectar el equipo'
+    : !sel ? 'Falta: marcar al menos un archivo en la tabla'
+    : !ok ? 'Falta: marcar la casilla "Entiendo que puede dejar el equipo sin arrancar"' : '';
 }
 
 /* ---------- Flasheo ---------- */
