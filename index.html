@@ -7,7 +7,7 @@
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="logo-192.jpg">
   <title>Diagtech · Sistema Integral</title>
-  <link rel="stylesheet" href="style.css?v=124">
+  <link rel="stylesheet" href="style.css?v=121">
 </head>
 <body>
   <header>
@@ -25,7 +25,9 @@
   </nav>
 
   <main>
-    <!-- SECCIÓN 1: DIAGNÓSTICO -->
+    <!-- ========================================== -->
+    <!-- SECCIÓN 1: DIAGNÓSTICO (sin cambios)       -->
+    <!-- ========================================== -->
     <div id="diag-section" class="tab-content active">
       <section class="intro">
         <p class="eyebrow">ESTACIÓN DE SERVICIO · SOMOTILLO</p>
@@ -120,23 +122,25 @@
       </section>
     </div>
 
-    <!-- SECCIÓN 2: FLASHEO ODIN -->
+    <!-- ========================================== -->
+    <!-- SECCIÓN 2: FLASHEO (Web Serial)            -->
+    <!-- ========================================== -->
     <div id="flash-section" class="tab-content">
       <div class="flash-embed">
-        <div class="warn">
-          ⚠️ <strong>Flasheo solo en PC.</strong> Esta sección usa WebUSB (protocolo Odin) y funciona en <strong>Chrome o Edge de escritorio</strong> con el teléfono en <strong>Modo Descarga</strong>. En tablets y móviles Android el navegador no expone el puerto USB. Cierra Odin, TSM Tool o SamFW antes de conectar.
+        <div class="warn" style="background:#3a2a0a;border:1px solid #ffb020;border-radius:8px;padding:10px 12px;color:#ffd98a;font-size:13px;margin-bottom:12px;">
+          ⚠️ <strong>Flasheo solo en PC.</strong> Esta sección usa Web Serial (protocolo Odin) y funciona en <strong>Chrome o Edge de escritorio</strong> con el teléfono en <strong>Modo Descarga</strong>. En tablets y móviles Android el navegador no expone el puerto serie USB, así que los botones de conexión no funcionarán. Cierra Odin, TSM Tool o SamFW antes de conectar: solo un programa puede usar el puerto COM.
         </div>
 
         <section>
           <h2>1. Equipo en modo descarga</h2>
           <div class="row">
             <button id="bCon">Conectar y leer PIT</button>
-            <button id="bInfo" class="sec" disabled>Info del equipo</button>
+            <button id="bInfo" class="sec" disabled>Info del equipo (experimental)</button>
             <button id="bPit" class="sec" disabled>Guardar PIT</button>
             <button id="bEnd" class="sec" disabled>Cerrar sesión</button>
             <span id="st" class="st">Sin conexión</span>
           </div>
-          <p class="note">Cierra TSM Tool, Odin o SamFW antes de conectar. Solo un programa puede usar el dispositivo.</p>
+          <p class="note">Chrome o Edge de escritorio, HTTPS. Cierra TSM Tool y Odin antes: solo un programa puede usar el puerto COM.</p>
           <div id="dev" class="note"></div>
         </section>
 
@@ -148,37 +152,22 @@
             <label><b>CP</b><input type="file" data-k="CP"></label>
             <label><b>CSC</b><input type="file" data-k="CSC"></label>
           </div>
-          <p class="note">Elige los archivos .tar.md5 sin comprimir.</p>
+          <p class="note">Elige los archivos .tar.md5 sin comprimir. Se leen por partes, sin cargarlos en memoria.</p>
         </section>
 
         <section>
           <h2>3. Mapa de particiones</h2>
           <div id="sum" class="note">Carga el firmware y conecta el equipo para ver el mapa.</div>
-          <div class="tw">
-            <table id="tb">
-              <thead><tr><th></th><th>Paquete</th><th>Archivo</th><th>Tamaño</th><th>Partición (PIT)</th><th></th></tr></thead>
-              <tbody></tbody>
-            </table>
-          </div>
-          <div class="row" style="margin-top:10px">
-            <button class="sec" id="bAll">Marcar todo</button>
-            <button class="sec" id="bNone">Ninguno</button>
-            <button class="sec" id="bTest">Solo RECOVERY (prueba)</button>
-          </div>
+          <div class="tw"><table id="tb"><thead><tr><th></th><th>Paquete</th><th>Archivo</th><th>Tamaño</th><th>Partición (PIT)</th><th></th></tr></thead><tbody></tbody></table></div>
+          <div class="row" style="margin-top:10px"><button class="sec" id="bAll">Marcar todo</button><button class="sec" id="bNone">Ninguno</button><button class="sec" id="bTest">Solo RECOVERY (prueba)</button></div>
         </section>
 
         <section>
           <h2>4. Flashear</h2>
-          <div class="warn" style="background: rgba(255, 176, 32, 0.1); border-color: #ffb020; color: #ffd98a;">
-            Empieza solo con RECOVERY en un equipo de prueba. No desconectes el cable.
-          </div>
+          <div class="warn">Implementado según la documentación pública del protocolo Odin, sin prueba en un equipo real todavía. Empieza solo con RECOVERY en un equipo de prueba. No marques BOOTLOADER, TZSW ni LDFW hasta que RECOVERY funcione. No desconectes el cable durante el proceso. Sin verificación MD5.</div>
           <label class="row chk"><input type="checkbox" id="fok"> Entiendo que puede dejar el equipo sin arrancar</label>
           <label class="row chk"><input type="checkbox" id="rb" checked> Reiniciar al terminar</label>
-          <div class="row" style="margin-top:8px">
-            <button id="bGo" class="go" disabled>FLASHEAR</button>
-            <button id="bStop" class="sec" disabled>Cancelar</button>
-            <span id="pr" class="st">Listo</span>
-          </div>
+          <div class="row" style="margin-top:8px"><button id="bGo" class="go" disabled>FLASHEAR</button><button id="bStop" class="sec" disabled>Cancelar</button><span id="pr" class="st">Listo</span></div>
           <div class="bar"><i id="pb"></i></div>
         </section>
 
@@ -191,188 +180,23 @@
   </main>
 
   <footer><strong>DIAGTECH · Creado por Alvaro Jiron, Somotillo</strong></footer>
-  
-  <script src="app.js?v=121" type="module"></script>
-  
-  <script type="module">
-    import libmjolnir from 'https://cdn.jsdelivr.net/npm/@lineageos-infra/libmjolnir/+esm';
-
-    const $ = id => document.getElementById(id);
-    let device = null, pitData = null, abort = false, busy = false;
-    const fw = { BL: null, AP: null, CP: null, CSC: null }, idx = {};
-    const dec = new TextDecoder();
-
-    function log(m, c) {
-      const d = document.createElement('div');
-      if (c) d.className = c;
-      d.textContent = m;
-      $('flog').appendChild(d);
-      $('flog').scrollTop = 1e9;
-    }
-    const mb = n => n >= 1e9 ? (n / 1e9).toFixed(2) + ' GB' : (n / 1e6).toFixed(1) + ' MB';
-    function status(t, c) { $('st').textContent = t; $('st').className = 'st ' + (c || ''); }
-
-    async function conectar() {
-      try {
-        const opts = { logging: true, timeout: 15000, resetOnInit: false };
-        log('Abriendo selector USB...');
-        device = await libmjolnir.requestDevice(opts);
-        log('Equipo detectado. Inicializando...');
-        await device.initialize();
-        
-        device.onDisconnect(() => {
-          log('Equipo desconectado.', 'e');
-          device = null; pitData = null; status('Sin conexión'); updGo();
+  <script>
+    // Pestañas: independiente de los módulos, funciona aunque otro script falle
+    (function () {
+      var btns = document.querySelectorAll('.tab-btn');
+      function show(id) {
+        btns.forEach(function (b) { b.classList.toggle('active', b.dataset.target === id); });
+        document.querySelectorAll('.tab-content').forEach(function (s) {
+          var on = s.id === id;
+          s.classList.toggle('active', on);
+          s.style.display = on ? 'block' : 'none';
         });
-
-        log('Leyendo PIT...');
-        await device.beginSession();
-        pitData = await device.getPitData();
-        await device.endSession();
-
-        log('PIT leído: ' + pitData.entries.length + ' particiones.', 'g');
-        $('dev').textContent = 'Particiones: ' + pitData.entries.length + ' · Board: ' + pitData.boardType;
-        
-        status('Modo descarga', 'ok');
-        ['bInfo', 'bPit', 'bEnd'].forEach(b => $(b).disabled = false);
-        $('bCon').disabled = true;
-        render();
-      } catch (e) {
-        log('ERROR: ' + e.message, 'e');
-        status('Error', 'err');
-        device = null;
       }
-    }
-
-    async function cerrar() {
-      try { if (device) await device.endSession(); } catch (e) {}
-      device = null; pitData = null;
-      status('Sin conexión');
-      ['bInfo', 'bPit', 'bEnd'].forEach(b => $(b).disabled = true);
-      $('bCon').disabled = false;
-      log('Sesión cerrada.');
-      updGo();
-    }
-
-    async function info() {
-      if (!device) return;
-      log('Board: ' + pitData.boardType + ' · LZ4: ' + (device.lz4Supported ? 'Sí' : 'No'), 'g');
-    }
-
-    function guardarPit() {
-      if (!pitData) return;
-      const blob = new Blob([JSON.stringify(pitData, null, 2)], { type: 'application/json' });
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-      a.download = 'pit_' + Date.now() + '.json'; a.click();
-    }
-
-    async function tarIndex(file) {
-      const out = []; let o = 0;
-      while (o + 512 <= file.size) {
-        const h = new Uint8Array(await file.slice(o, o + 512).arrayBuffer());
-        if (h[0] === 0) break;
-        const name = dec.decode(h.slice(0, 100)).split('\0')[0];
-        let size;
-        if (h[124] & 0x80) { size = 0; for (let i = 125; i < 136; i++) size = size * 256 + h[i]; }
-        else size = parseInt(dec.decode(h.slice(124, 136)).replace(/\0/g, '').trim() || '0', 8);
-        if (!name || isNaN(size)) break;
-        out.push({ name, size, off: o + 512 }); o += 512 + Math.ceil(size / 512) * 512;
-      }
-      return out;
-    }
-
-    document.querySelectorAll('input[data-k]').forEach(inp => inp.onchange = async () => {
-      const k = inp.dataset.k, f = inp.files[0]; fw[k] = f || null; idx[k] = [];
-      if (f) {
-        try {
-          idx[k] = await tarIndex(f);
-          idx[k].forEach(e => { e.file = f; e.k = k; });
-          log(k + ': ' + f.name + ' → ' + idx[k].length + ' archivos (' + mb(f.size) + ')', 'g');
-        } catch (e) { log(k + ': ' + e.message, 'e'); }
-      }
-      render();
-    });
-
-    const ORDER = ['AP', 'BL', 'CP', 'CSC'];
-    const sel = () => ORDER.flatMap(k => (idx[k] || []).filter(e => e.sel && e.p));
-    function updGo() { $('bGo').disabled = !(pitData && device && !busy && $('fok').checked && sel().length); }
-
-    function render() {
-      const tb = $('tb').querySelector('tbody'); tb.innerHTML = '';
-      let total = 0, ok = 0, miss = 0;
-      for (const k of ORDER) {
-        for (const e of (idx[k] || [])) {
-          const base = e.name.replace(/\.lz4$/i, '').toLowerCase();
-          e.p = (pitData && pitData.entries.find(x => x.name && (x.name.toLowerCase() === base || x.name.toLowerCase() === e.name.toLowerCase()))) || null;
-          total += e.size;
-          const tr = document.createElement('tr');
-          const c = (t, cl) => { const td = document.createElement('td'); td.textContent = t; if (cl) td.className = cl; tr.appendChild(td); };
-          const t0 = document.createElement('td');
-          if (e.p) { const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!e.sel; cb.onchange = () => { e.sel = cb.checked; updGo(); }; t0.appendChild(cb); }
-          tr.appendChild(t0);
-          c(k); c(e.name); c(mb(e.size));
-          if (!pitData) { c('(conecta el equipo)', 'no'); c(''); }
-          else if (e.p) { ok++; c(e.p.name); c('✓', 'ok'); }
-          else { miss++; c('sin coincidencia', 'no'); c('!', 'no'); }
-          tb.appendChild(tr);
-        }
-      }
-      $('sum').textContent = total ? ('Total: ' + mb(total) + (pitData ? ' · coinciden ' + ok + ' · sin coincidencia ' + miss : '')) : 'Carga el firmware y conecta el equipo.';
-      updGo();
-    }
-
-    const marcar = f => { ORDER.forEach(k => (idx[k] || []).forEach(e => { e.sel = !!e.p && f(e); })); render(); };
-
-    async function flashAll() {
-      const list = sel(); busy = true; abort = false; updGo(); $('bStop').disabled = false; $('pb').style.width = '0';
-      try {
-        const total = list.reduce((a, e) => a + e.size, 0);
-        let done = 0;
-        log('Iniciando sesión de flasheo...');
-        await device.beginSession();
-
-        for (const e of list) {
-          if (abort) throw new Error('Cancelado por el usuario');
-          log('Flasheando ' + e.p.name + ' (' + e.name + ', ' + mb(e.size) + ')…');
-          $('pr').textContent = e.p.name;
-          
-          const blob = e.file.slice(e.off, e.off + e.size);
-          const t = Date.now();
-          await device.flashPartition(e.p.name, blob);
-          
-          done += e.size;
-          $('pb').style.width = (100 * done / total).toFixed(1) + '%';
-          log('✓ ' + e.p.name + ' (' + ((Date.now() - t) / 1000).toFixed(0) + ' s)', 'g');
-        }
-
-        await device.endSession();
-        log('Flasheo completo.', 'g');
-        status('Completado', 'ok'); $('pr').textContent = 'Completado';
-
-        if ($('rb').checked) {
-          log('Reiniciando equipo...');
-          await device.reboot();
-        }
-        await cerrar();
-      } catch (err) {
-        log('ERROR: ' + err.message, 'e');
-        status('Error', 'err'); $('pr').textContent = 'Error';
-        try { await device?.endSession(); } catch (e) {}
-      }
-      busy = false; $('bStop').disabled = true; updGo();
-    }
-
-    // ENLACES DE BOTONES (Aquí estaba el error anterior)
-    $('bCon').onclick = conectar;
-    $('bInfo').onclick = info;
-    $('bPit').onclick = guardarPit;
-    $('bEnd').onclick = cerrar;
-    $('bAll').onclick = () => marcar(() => true);
-    $('bNone').onclick = () => marcar(() => false);
-    $('bTest').onclick = () => marcar(e => e.p.name.toUpperCase() === 'RECOVERY');
-    $('fok').onchange = updGo;
-    $('bGo').onclick = flashAll;
-    $('bStop').onclick = () => { abort = true; log('Cancelando…'); };
+      btns.forEach(function (b) { b.addEventListener('click', function () { show(b.dataset.target); }); });
+      show('diag-section');
+    })();
   </script>
+  <script src="app.js?v=123" type="module"></script>
+  <script src="flash.js?v=123" defer></script>
 </body>
 </html>
