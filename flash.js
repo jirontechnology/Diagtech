@@ -184,6 +184,86 @@ async function readTar(f) {
   return out;
 }
 
+/* ---------- LZ4 (formato frame, en streaming) ---------- */
+class Rd {
+  constructor(f, start, end) { this.f = f; this.p = start; this.end = end; this.b = new Uint8Array(0); this.bs = start; }
+  left() { return this.end - this.p; }
+  async get(n) {
+    if (this.p + n > this.end) throw new Error('LZ4 truncado');
+    if (this.p < this.bs || this.p + n > this.bs + this.b.length) {
+      const len = Math.min(Math.max(n, 4 << 20), this.end - this.p);
+      this.b = new Uint8Array(await this.f.slice(this.p, this.p + len).arrayBuffer()); this.bs = this.p;
+    }
+    const o = this.b.subarray(this.p - this.bs, this.p - this.bs + n); this.p += n; return o;
+  }
+}
+function lz4Block(src, sLen, dst, d) {
+  let s = 0;
+  while (s < sLen) {
+    const tok = src[s++]; let lit = tok >> 4;
+    if (lit === 15) { let b; do { b = src[s++]; lit += b; } while (b === 255); }
+    dst.set(src.subarray(s, s + lit), d); s += lit; d += lit;
+    if (s >= sLen) break;
+    const off = src[s] | (src[s + 1] << 8); s += 2;
+    let ml = tok & 15;
+    if (ml === 15) { let b; do { b = src[s++]; ml += b; } while (b === 255); }
+    ml += 4;
+    for (let m = d - off, e = d + ml; d < e;) dst[d++] = dst[m++];
+  }
+  return d;
+}
+const u32 = b => new DataView(b.buffer, b.byteOffset, 4).getUint32(0, true);
+async function* lz4Chunks(f, start, size) {
+  const r = new Rd(f, start, start + size);
+  while (r.left() >= 7) {
+    if (u32(await r.get(4)) !== 0x184D2204) throw new Error('LZ4: firma inválida');
+    const h = await r.get(2), FLG = h[0], BD = h[1];
+    const maxB = [0, 0, 0, 0, 65536, 262144, 1048576, 4194304][(BD >> 4) & 7];
+    if (FLG & 8) await r.get(8);
+    if (FLG & 1) await r.get(4);
+    await r.get(1);
+    let hist = new Uint8Array(0);
+    for (;;) {
+      const bs = u32(await r.get(4)); if (bs === 0) break;
+      const raw = bs & 0x80000000, len = bs & 0x7fffffff, data = await r.get(len);
+      let out;
+      if (raw) out = data.slice();
+      else {
+        const dst = new Uint8Array(hist.length + maxB); dst.set(hist);
+        out = dst.slice(hist.length, lz4Block(data, len, dst, hist.length));
+      }
+      if (FLG & 16) await r.get(4);
+      if (FLG & 32) hist = new Uint8Array(0);
+      else { const a = new Uint8Array(hist.length + out.length); a.set(hist); a.set(out, hist.length); hist = a.slice(-65536); }
+      yield out;
+    }
+    if (FLG & 4) await r.get(4);
+  }
+}
+async function lz4Size(r) {
+  const h = new Uint8Array(await r.f.slice(r.e.start, r.e.start + 15).arrayBuffer());
+  if (u32(h) !== 0x184D2204) throw new Error(r.base + ': LZ4 inválido');
+  if (h[4] & 8) return Number(new DataView(h.buffer).getBigUint64(6, true));
+  log(`${r.base}: LZ4 sin tamaño en cabecera, midiendo (tarda)…`, '#ffb020');
+  let n = 0; for await (const c of lz4Chunks(r.f, r.e.start, r.e.size)) n += c.length; return n;
+}
+// Devuelve una función next(n) que entrega hasta n bytes ya descomprimidos
+function source(r) {
+  if (!r.lz4) {
+    let pos = 0;
+    return async n => { const a = r.e.start + pos, len = Math.min(n, r.sz - pos); pos += len; return new Uint8Array(await r.f.slice(a, a + len).arrayBuffer()); };
+  }
+  const it = lz4Chunks(r.f, r.e.start, r.e.size); let rest = new Uint8Array(0);
+  return async n => {
+    const parts = []; let have = 0;
+    if (rest.length) { parts.push(rest); have = rest.length; rest = new Uint8Array(0); }
+    while (have < n) { const { value, done } = await it.next(); if (done) break; parts.push(value); have += value.length; }
+    const all = new Uint8Array(have); let o = 0; for (const p of parts) { all.set(p, o); o += p.length; }
+    if (have > n) { rest = all.slice(n); return all.slice(0, n); }
+    return all;
+  };
+}
+
 /* ---------- Tabla de particiones ---------- */
 let rows = [];
 function buildRows() {
@@ -198,9 +278,8 @@ function buildRows() {
       let why = '';
       if (!pit.length) why = 'conecta para ver PIT';
       else if (!p) why = 'sin partición en PIT';
-      else if (lz4) why = 'LZ4: aún no soportado';
       else if (/\.(txt|md5|pit)$/i.test(base)) why = 'no flasheable';
-      rows.push({ k, f: files[k].file, e, base, p, ok: !why, why, on: false });
+      rows.push({ k, f: files[k].file, e, base, p, lz4, ok: !why, why, on: false });
     }
   }
   render();
@@ -237,7 +316,7 @@ function prog() {
 }
 
 async function flashFile(r) {
-  const size = r.e.size, p = r.p, seqBytes = PART * SEQ_PARTS;
+  const size = r.sz, p = r.p, seqBytes = PART * SEQ_PARTS, next = source(r);
   await cmd([0x66, 0]); // pedir flasheo
   let pos = 0;
   while (pos < size) {
@@ -246,14 +325,15 @@ async function flashFile(r) {
     await cmd([0x66, 2, parts * PART]);
     for (let i = 0; i < parts; i++) {
       if (cancel) throw new Error('Cancelado por el usuario');
-      const a = r.e.start + pos + i * PART;
-      const len = Math.min(PART, size - (pos + i * PART));
+      const want = Math.min(PART, size - (pos + i * PART));
+      const chunk = await next(want);
+      if (chunk.length !== want) throw new Error(`${r.base}: datos inesperados (esperaba ${want}, llegaron ${chunk.length})`);
       const buf = new Uint8Array(PART); // relleno con ceros
-      buf.set(new Uint8Array(await r.f.slice(a, a + len).arrayBuffer()));
+      buf.set(chunk);
       await send(buf);
       const rs = new DataView((await readN(8, 120000)).buffer);
       if (rs.getInt32(4, true) < 0) throw new Error(`El equipo rechazó el bloque ${i} de ${r.base}`);
-      done += len; prog();
+      done += want; prog();
     }
     const last = pos + seqLen >= size ? 1 : 0;
     const end = p.bin === 1
@@ -264,18 +344,22 @@ async function flashFile(r) {
     if (er.getInt32(4, true) < 0) throw new Error(`Error al cerrar secuencia de ${r.base}`);
     pos += seqLen;
   }
+  if ((await next(1)).length) throw new Error(`${r.base}: quedaron datos sin enviar (tamaño LZ4 distinto)`);
 }
 
 $('bGo').onclick = async () => {
   const sel = rows.filter(r => r.on);
   if (!sel.length) return;
   running = true; cancel = false; gate();
-  done = 0; total = sel.reduce((a, r) => a + r.e.size, 0); t0 = Date.now();
+  done = 0; t0 = Date.now();
   try {
+    for (const r of sel) r.sz = r.lz4 ? await lz4Size(r) : r.e.size;
+    total = sel.reduce((a, r) => a + r.sz, 0);
+    log(`Total a enviar: ${fmt(total)}`);
     const t = BigInt(total);
     await cmd([0x64, 2, Number(t & 0xffffffffn), Number(t >> 32n)]);
     for (const r of sel) {
-      log(`Flasheando ${r.k}: ${r.base} → ${r.p.name} (${fmt(r.e.size)})`);
+      log(`Flasheando ${r.k}: ${r.base} → ${r.p.name} (${fmt(r.sz)})`);
       r.td.textContent = '⏳';
       await flashFile(r);
       r.td.textContent = '✅'; log(`${r.base} OK`, '#6ee7a8');
