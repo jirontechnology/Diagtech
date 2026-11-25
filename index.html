@@ -62,13 +62,13 @@
 
       <section class="panel">
         <div class="summary">
-          <div class="circle"><b id="done">0</b><small>/15</small></div>
+          <div class="circle"><b id="done">0</b><small>/22</small></div>
           <div>
             <h2>Resumen de revisión</h2>
             <p>🟢 Normales: <b id="ok">0</b></p>
             <p>🔴 Problemas: <b id="bad">0</b></p>
             <p>🟠 No disponible: <b id="unavailable">0</b></p>
-            <p>⚪ Sin probar: <b id="pending">15</b></p>
+            <p>⚪ Sin probar: <b id="pending">22</b></p>
           </div>
         </div>
       </section>
@@ -128,7 +128,7 @@
     <div id="flash-section" class="tab-content">
       <div class="flash-embed">
         <div class="warn" style="background:#3a2a0a;border:1px solid #ffb020;border-radius:8px;padding:10px 12px;color:#ffd98a;font-size:13px;margin-bottom:12px;">
-          ⚠️ <strong>Flasheo solo en PC.</strong> Esta sección usa Web Serial (protocolo Odin) y funciona en <strong>Chrome o Edge de escritorio</strong> con el teléfono en <strong>Modo Descarga</strong>. En tablets y móviles Android el navegador no expone el puerto serie USB, así que los botones de conexión no funcionarán. Cierra Odin, TSM Tool o SamFW antes de conectar: solo un programa puede usar el puerto COM.
+          ⚠️ <strong>Flasheo solo en PC.</strong> Funciona en <strong>Chrome o Edge de escritorio</strong> con el teléfono en <strong>Modo Descarga</strong>. En tablets y móviles no funciona.
         </div>
 
         <section>
@@ -140,7 +140,6 @@
             <button id="bEnd" class="sec" disabled>Cerrar sesión</button>
             <span id="st" class="st">Sin conexión</span>
           </div>
-          <p class="note">Chrome o Edge de escritorio, HTTPS. Cierra TSM Tool y Odin antes: solo un programa puede usar el puerto COM.</p>
           <div id="dev" class="note"></div>
         </section>
 
@@ -164,7 +163,7 @@
 
         <section>
           <h2>4. Flashear</h2>
-          <div class="warn">Implementado según la documentación pública del protocolo Odin, sin prueba en un equipo real todavía. Empieza solo con RECOVERY en un equipo de prueba. No marques BOOTLOADER, TZSW ni LDFW hasta que RECOVERY funcione. No desconectes el cable durante el proceso. Sin verificación MD5.</div>
+          <div class="warn">Probado en Galaxy S9 (RECOVERY y BOOT). No desconectes el cable durante el proceso. No marques BOOTLOADER, TZSW ni LDFW si no estás seguro del firmware. Sin verificación MD5.</div>
           <label class="row chk"><input type="checkbox" id="fok"> Entiendo que puede dejar el equipo sin arrancar</label>
           <label class="row chk"><input type="checkbox" id="rb" checked> Reiniciar al terminar</label>
           <div class="row" style="margin-top:8px"><button id="bGo" class="go" disabled>FLASHEAR</button><button id="bStop" class="sec" disabled>Cancelar</button><span id="pr" class="st">Listo</span></div>
@@ -196,7 +195,7 @@
       show('diag-section');
     })();
   </script>
-  <script src="app.js?v=127" type="module"></script>
-  <script src="flash.js?v=127" defer></script>
+  <script src="app.js?v=131" type="module"></script>
+  <script src="flash.js?v=130" defer></script>
 </body>
 </html>

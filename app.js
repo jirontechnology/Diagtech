@@ -21,7 +21,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // ==========================================
 const automatic = [
   ['system', 'Software', 'Versión de Android'], ['battery', 'Batería', 'Nivel, Temp, Voltaje, Corriente'],
-  ['charging', 'Puerto de Carga', 'Datos y Energía'], ['ram', 'Memoria RAM', 'Total y disponible'],
+  ['ram', 'Memoria RAM', 'Total y disponible'],
   ['storage', 'Almacenamiento', 'Espacio interno'], ['display', 'Pantalla', 'Resolución'],
   ['imei', 'IMEI / Serie', 'Identificador'], ['nfc', 'NFC', 'Función declarada'],
   ['sim', 'SIM', 'Estado de SIM'], ['mobile', 'Red Móvil', 'Operador'],
@@ -45,12 +45,15 @@ function draw(items, target) {
     </article>`).join('');
 }
 draw(automatic, 'auto'); draw(manual, 'manual');
+summary();
 
 function summary() {
   let v = Object.values(results), ok = v.filter(x => x === 'normal').length, bad = v.filter(x => x === 'problema').length, done = v.filter(x => ['normal', 'problema', 'no disponible'].includes(x)).length;
   $('done').textContent = done; $('ok').textContent = ok; $('bad').textContent = bad;
   $('unavailable').textContent = v.filter(x => x === 'no disponible').length;
-  $('pending').textContent = automatic.length - done;
+  const total = automatic.length + manual.length;
+  $('pending').textContent = total - done;
+  const tot = document.querySelector('#done + small'); if (tot) tot.textContent = '/' + total;
 }
 function log(t) { $('log').textContent = new Date().toLocaleTimeString() + ' · ' + t + '\n' + $('log').textContent; }
 
@@ -151,54 +154,43 @@ async function runOne(id) {
       case 'battery': {
         out = await runCmd(['dumpsys', 'battery']);
         if (out && out.includes('level')) {
-          const level = out.match(/level:\s*(\d+)/)?.[1] || '?';
-          const temp = out.match(/temperature:\s*(\d+)/)?.[1];
-          const volt = out.match(/voltage:\s*(\d+)/)?.[1];
-          const current = out.match(/CURRENT_NOW:\s*(-?\d+)/)?.[1];
-          detail = `${level}%, ${temp ? (parseInt(temp)/10).toFixed(1) : '?'}°C, ${volt ? (parseInt(volt)/1000).toFixed(2) : '?'}V, ${current ? (parseInt(current)/1000).toFixed(0) : '?'}mA`;
+          const level = out.match(/^\s*level:\s*(\d+)/m)?.[1] || '?';
+          const temp = out.match(/^\s*temperature:\s*(\d+)/m)?.[1];
+          const volt = out.match(/^\s*voltage:\s*(\d+)/m)?.[1];
+          let current = out.match(/CURRENT_NOW:\s*(-?\d+)/)?.[1];
+          if (!current) { const c = await runCmd(['cat', '/sys/class/power_supply/battery/current_now']); if (c && /^-?\d+$/.test(c.trim())) current = c.trim(); }
+          const vv = volt ? (parseInt(volt) > 100000 ? parseInt(volt) / 1e6 : parseInt(volt) / 1000) : null;
+          detail = `${level}%, ${temp ? (parseInt(temp)/10).toFixed(1) : '?'}°C, ${vv ? vv.toFixed(2) : '?'}V, ${current ? (Math.abs(parseInt(current))/1000).toFixed(0) : '?'}mA`;
           status = parseInt(level) < 15 ? 'problema' : 'normal';
         } else { status = 'no disponible'; detail = 'No leído'; }
         break;
       }
-      case 'charging': {
-        out = await runCmd(['dumpsys', 'battery']);
-        const ac = out && out.includes('AC powered: true');
-        const usbState = await runCmd(['cat', '/sys/class/android_usb/android0/state']);
-        if (ac) {
-            status = usbState && usbState.includes('CONFIGURED') ? 'normal' : 'problema';
-            detail = status==='normal'?'Cargando y Datos OK':'Carga sí, Datos no';
-        }
-        else { status = 'problema'; detail = 'Sin carga ni datos'; }
-        break;
-      }
       case 'ram': {
         out = await runCmd(['cat', '/proc/meminfo']);
+        status = 'no disponible'; detail = 'No leído';
         if (out) {
-            const t = out.match(/MemTotal:\s*(\d+)/);
-            const f = out.match(/MemAvailable:\s*(\d+)/);
-            if(t&&f){
-                detail=`${(f[1]/1024).toFixed(1)} GB de ${(t[1]/1024).toFixed(1)} GB`;
-            } else status='no disponible';
+          const t = out.match(/MemTotal:\s*(\d+)/), f = out.match(/MemAvailable:\s*(\d+)/);
+          if (t && f) { status = 'normal'; detail = `${(f[1] / 1048576).toFixed(1)} GB libres de ${(t[1] / 1048576).toFixed(1)} GB`; }
         }
         break;
       }
       case 'storage': {
         out = await runCmd(['df', '-h', '/data']);
+        status = 'no disponible'; detail = 'No leído';
         if (out) {
-            const line = out.split('\n').find(l=>l.includes('/data'));
-            if(line){const p=line.trim().split(/\s+/);detail=`${p[3]} libres de ${p[1]}`;}
-            else status='no disponible';
+          const line = out.split('\n').find(l => l.includes('/data'));
+          if (line) { const p = line.trim().split(/\s+/); status = 'normal'; detail = `${p[3]} libres de ${p[1]}`; }
         }
         break;
       }
       case 'display': out = await runCmd(['wm', 'size']); detail = out ? out.match(/(\d+x\d+)/)?.[0] : '?'; status = out?'normal':'no disponible'; break;
       case 'imei': out = await runCmd(['getprop', 'ro.serialno']); detail = out || 'Restringido'; status = out?'normal':'no disponible'; break;
       case 'nfc': out = await runCmd(['pm', 'list', 'features']); status = (out && out.includes('nfc'))?'normal':'no disponible'; detail=status==='normal'?'Soporta NFC':'Sin NFC'; break;
-      case 'sim': out = await runCmd(['getprop', 'gsm.sim.state']); status = (out && out!=='UNKNOWN'&&out!=='')?'normal':'no disponible'; detail=out||'Sin SIM'; break;
+      case 'sim': out = await runCmd(['getprop', 'gsm.sim.state']); status = (out && /READY|LOADED/.test(out)) ? 'normal' : 'no disponible'; detail = out || 'Sin SIM'; break;
       case 'mobile': out = await runCmd(['getprop', 'gsm.operator.alpha']); if(!out) out=await runCmd(['getprop', 'gsm.sim.operator.alpha']); status=(out&&out!=='')?'normal':'no disponible'; detail=out?out.split(',')[0]:'Sin red'; break;
       case 'sdcard': out = await runCmd(['ls', '/storage']); status = (out&&out.includes('sdcard1'))?'normal':'no disponible'; detail=status==='normal'?'SD Detectada':'Sin SD'; break;
       case 'sensors': out = await runCmd(['dumpsys', 'sensorservice']); status=(out&&out.includes('Sensor List'))?'normal':'no disponible'; detail=status==='normal'?'Activos':'No leído'; break;
-      case 'location': out = await runCmd(['settings', 'get', 'secure', 'location_mode']); status=(out&&(out==='3'||out==='1'))?'normal':'no disponible'; detail=out==='3'?'Alta precisión':'Apagado'; break;
+      case 'location': out = await runCmd(['settings', 'get', 'secure', 'location_mode']); status = (out && ['1', '2', '3'].includes(out)) ? 'normal' : 'no disponible'; detail = ({ '3': 'Alta precisión', '2': 'Ahorro de batería', '1': 'Solo dispositivo' })[out] || 'Apagado'; break;
       case 'wifi': out = await runCmd(['dumpsys', 'wifi']); status=(out&&out.includes('Wi-Fi is enabled'))?'normal':'no disponible'; detail=status==='normal'?'Activo':'Apagado'; break;
       case 'bluetooth': out = await runCmd(['settings', 'get', 'global', 'bluetooth_on']); status=(out==='1')?'normal':'no disponible'; detail=out==='1'?'Activo':'Apagado'; break;
       default: status = 'no disponible'; detail = 'No implementado';
@@ -255,5 +247,5 @@ actualizarTablaHistorial();
 // 3. REGISTRO DE SERVICE WORKER (ACTUALIZADO A V7)
 // ==========================================
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  navigator.serviceWorker.register('/sw.js?v=7').then(reg => reg.update()).catch(() => {});
+  navigator.serviceWorker.register('/sw.js?v=8').then(reg => reg.update()).catch(() => {});
 }
