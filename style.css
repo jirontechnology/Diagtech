@@ -1,3 +1,80 @@
+/* ===== DIAGTECH · style.css completo ===== */
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: #101114; color: #e6e8ee; font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif; font-size: 15px; line-height: 1.45; }
+h1, h2, h3, p { margin: 0; }
+button { font-family: inherit; background: #3979ff; color: #fff; border: 0; border-radius: 10px; padding: 12px 18px; font-size: 14px; font-weight: 600; cursor: pointer; }
+button:hover { filter: brightness(1.12); }
+button:disabled { opacity: .4; cursor: not-allowed; filter: none; }
+
+/* ----- Encabezado ----- */
+header { display: flex; align-items: center; gap: 12px; padding: 12px max(18px, calc((100% - 1050px)/2)); background: #15171c; border-bottom: 1px solid #282b33; }
+header b { display: block; font-size: 18px; letter-spacing: 1.5px; }
+header small { color: #9da3af; font-size: 12px; }
+.logo-img { width: 46px; height: 46px; border-radius: 10px; object-fit: cover; }
+.tag { margin-left: auto; padding: 5px 12px; border-radius: 99px; font-size: 13px; background: #22262f; color: #9da3af; white-space: nowrap; }
+.tag.connected { background: #12351f; color: #33d17a; }
+
+/* ----- Contenido ----- */
+main { max-width: 1050px; margin: 0 auto; padding: 20px 18px 40px; }
+.tab-content > section, .tab-content > .panel { margin-bottom: 16px; }
+.intro { padding: 10px 2px 4px; }
+.intro h1 { font-size: 28px; margin: 4px 0 8px; }
+.intro p { color: #9da3af; }
+.eyebrow { color: #78a0ff; font-size: 12px; letter-spacing: 1.6px; font-weight: 700; margin-bottom: 4px; }
+.muted { color: #9da3af; font-size: 13px; margin: 6px 0 10px; }
+.hint { color: #9da3af; font-size: 13px; margin-top: 10px; }
+
+.hero-action { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; background: linear-gradient(135deg, #172342, #15171c); border: 1px solid #2a3a66; border-radius: 14px; padding: 20px; }
+.hero-action h2 { font-size: 20px; margin: 2px 0 6px; }
+.hero-action p { color: #b4bac8; max-width: 560px; }
+.primary { background: #3979ff; }
+.big-action { padding: 16px 26px; font-size: 16px; border-radius: 12px; }
+
+.panel { background: #15171c; border: 1px solid #282b33; border-radius: 12px; padding: 16px; }
+.panel h2 { font-size: 18px; margin-bottom: 12px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.actions button { padding: 14px 18px; font-size: 15px; }
+
+.device { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.device > div { background: #0f1115; border: 1px solid #282b33; border-radius: 10px; padding: 10px 12px; }
+.device small { display: block; color: #9da3af; font-size: 12px; margin-bottom: 2px; }
+.device strong { font-size: 15px; word-break: break-all; }
+
+/* ----- Resumen ----- */
+.summary { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+.summary p { margin: 3px 0; font-size: 15px; }
+.circle { width: 112px; height: 112px; border-radius: 50%; border: 7px solid #3979ff; display: flex; align-items: baseline; justify-content: center; padding-top: 30px; flex: none; }
+.circle b { font-size: 34px; }
+.circle small { color: #9da3af; font-size: 14px; margin-left: 2px; }
+
+/* ----- Tarjetas de prueba ----- */
+.tests { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.test { background: #0f1115; border: 1px solid #282b33; border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 4px; }
+.test h3 { font-size: 16px; }
+.test p { color: #b4bac8; font-size: 13px; }
+.test small { font-size: 13px; color: #a6abb6; min-height: 18px; margin-top: 4px; }
+.test button { width: 100%; margin-top: auto; background: #30343e; }
+.test.ok { border-color: #20a879; }
+.test.ok button { background: #20a879; }
+.test.bad { border-color: #e5533d; }
+.test.bad button { background: #f0803c; }
+.test.unavailable { border-color: #d49b42; }
+.test.unavailable button { background: #30343e; }
+
+/* ----- Registro y pie ----- */
+pre#log { background: #0b0c0f; border: 1px solid #282b33; border-radius: 8px; padding: 12px; margin: 14px 0 0; max-height: 260px; overflow: auto; font: 12px/1.5 Consolas, "Courier New", monospace; white-space: pre-wrap; color: #cfd3dc; }
+footer { text-align: center; color: #9da3af; padding: 22px 18px 34px; border-top: 1px solid #282b33; font-size: 13px; }
+
+@media (max-width: 640px) {
+  .intro h1 { font-size: 23px; }
+  .big-action { width: 100%; }
+  .hero-action > div:last-child { width: 100%; }
+  .tab-btn { flex: 1; padding: 14px 8px; font-size: 14px; }
+  .tests { grid-template-columns: 1fr; }
+}
+
+/* ===== Pestañas y Flasheo ===== */
 .tabs { display: flex; background: #15171c; border-bottom: 1px solid #282b33; padding: 0 max(18px, calc((100% - 1050px)/2)); }
 .tab-btn { background: transparent; color: #9da3af; border: none; border-bottom: 3px solid transparent; border-radius: 0; padding: 15px 20px; font-size: 15px; cursor: pointer; transition: 0.2s; }
 .tab-btn:hover { color: #fff; background: #1f232b; }
